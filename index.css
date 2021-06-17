@@ -1,3 +1,13 @@
+body {
+  margin: 0 16rem;
+}
+
+.canvas-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 #canvas {
   border: 1px solid black;
 }
