@@ -11,6 +11,10 @@ export class Line {
     this.color = 'black'
   }
 
+  isLeft(vector) {
+    return ((this.end.x - this.start.x)*(vector.y - this.start.y) - (this.end.y - this.start.y)*(vector.x - this.start.x)) > 0;
+  }
+
   update(deltaTime) {
 
   }
