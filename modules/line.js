@@ -27,7 +27,7 @@ export class Line {
     context.beginPath();
     context.moveTo(this.start.x, this.start.y);
     context.lineTo(this.end.x, this.end.y);
-    context.fillStyle = this.color;
+    context.strokeStyle = this.color;
     context.stroke();
   }
 }

@@ -2,6 +2,7 @@ import { Vec2 } from './index.js'
 
 export class Ball {
   constructor(x, y) {
+    this.canvas = document.getElementById('canvas');
     this.position = new Vec2({ x, y })
     this.direction = new Vec2({ x: 0, y: 0})
     this.speed = new Vec2({ x: 0, y: 0})
@@ -9,6 +10,7 @@ export class Ball {
     this.gravityMultiplier = 10
     this.terminalSpeed = 100
     this.color = 'black'
+    this.deleteMe = false
   }
 
   intersect(line) {
@@ -39,6 +41,9 @@ export class Ball {
     for (const line of lines) {
       const res = this.intersect(line)
       if (res) {
+        const event = new CustomEvent('play-tone', { detail: new Vec2(this.position) });
+        this.canvas.dispatchEvent(event)
+
         this.color = 'red'
 
         const isLeft = line.isLeft(this.position)
@@ -71,6 +76,10 @@ export class Ball {
     this.direction = new Vec2(this.position)
     this.position.add(velocity)
     this.direction.sub(this.position)
+    // this.canvas.height
+    if (this.position.y > this.canvas.height) {
+      this.deleteMe = true
+    }
   }
 
   draw(context) {
