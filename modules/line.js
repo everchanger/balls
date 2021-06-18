@@ -4,6 +4,10 @@ export class Line {
   constructor(start, end) {
     this.start = new Vec2(start)
     this.end = new Vec2(end)
+
+    this.vector = new Vec2(this.end)
+    this.vector.sub(this.start)
+
     this.color = 'black'
   }
 

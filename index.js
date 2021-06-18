@@ -9,9 +9,9 @@ class Game {
     this.deltaTime = 0
     this.lastDraw = 0
     
-    const ballCount = 3
+    const ballCount = 10
     for (let i = 0; i < ballCount; ++i) {
-      this.balls.push(new Ball(i * 50, 0))
+      this.balls.push(new Ball((i + 1) * 50, 0))
     }
   }
  

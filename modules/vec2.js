@@ -44,6 +44,20 @@ export class Vec2 {
     this.y *= vector.y
   }
 
+  normalCW() {
+    return new Vec2({x: this.y, y: -this.x})
+  }
+
+  normalCCW() {
+    return new Vec2({x: -this.y, y: this.x})
+  }
+
+  addScale(scale, vector) {
+    const scaleVec = new Vec2(vector)
+    scaleVec.scale(scale)
+    this.add(scaleVec)
+  }
+
   scale(scale) {
     this.x *= scale
     this.y *= scale
