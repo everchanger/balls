@@ -11,3 +11,8 @@ body {
 #canvas {
   border: 1px solid black;
 }
+
+.container {
+  display: flex;
+  justify-content: space-between;
+}

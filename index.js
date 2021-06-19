@@ -9,6 +9,49 @@ class Game {
     this.lineStart = undefined
     this.deltaTime = 0
     this.lastDraw = 0
+    this.maxBalls = 10
+    this.hz = 100
+    this.gravityMultiplier = 10
+    this.terminalSpeed = 100
+
+    this.controls = [
+      {
+        attributes: {
+          type: 'range',
+          min: '0',
+          max: '20',
+        },
+        label: 'Number of balls',
+        variable: 'maxBalls'
+      },
+      {
+        attributes: {
+          type: 'range',
+          min: '0',
+          max: '4000',
+        },
+        label: 'Hz',
+        variable: 'hz'
+      },
+      {
+        attributes: {
+          type: 'range',
+          min: '1',
+          max: '100',
+        },
+        label: 'Gravity',
+        variable: 'gravityMultiplier'
+      },
+      {
+        attributes: {
+          type: 'range',
+          min: '50',
+          max: '200',
+        },
+        label: 'Terminal speed',
+        variable: 'terminalSpeed'
+      },
+    ]
 
     this.spawner = new BallSpawner( new Vec2({x: this.canvas.width / 2, y: 10 }), 2)
   }
@@ -16,7 +59,7 @@ class Game {
   update() {
     this.spawner.update(this.deltaTime)
     for (const ball of this.balls) {
-      ball.update(this.deltaTime, this.lines)
+      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
   }
@@ -29,8 +72,8 @@ class Game {
       return;
     }
 
-    //context.clearRect(0,0, canvas.width, canvas.height);
-    context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    // context.clearRect(0,0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(0, 0, 0, 255)';
     context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.spawner.draw(context)
@@ -56,13 +99,47 @@ class Game {
   
   init() {
     console.log('init')
+    this.setupUIInputs()
     this.setupEventListeners();
     
     this.lastDraw = performance.now()
     window.requestAnimationFrame((hrt) => this.mainLoop(hrt))
   }
 
+  setupUIInputs() {
+    const controlSection = document.getElementById('control-section')
+    for (const control of this.controls) {
+      const wrapper = document.createElement('div')
+      const element = document.createElement('input')
+      const labelElement = document.createElement('label')
+      const outputElement = document.createElement('span')
+
+      labelElement.innerHTML = control.label
+      outputElement.innerHTML = this[control.variable]
+
+      for (const attribute in control.attributes) {
+        element.setAttribute(attribute, control.attributes[attribute])
+      }
+
+      element.setAttribute('value', this[control.variable])
+      element.addEventListener('input', (e) => {
+        this[control.variable] = e.target.value
+        outputElement.innerHTML = this[control.variable]
+      })
+
+      wrapper.appendChild(labelElement)
+      wrapper.appendChild(element)
+      wrapper.appendChild(outputElement)
+      controlSection.appendChild(wrapper)
+    }
+  }
+
   setupEventListeners() {
+    // document.getElementById('num-balls').addEventListener('input', (e) => {
+    //   this.maxBalls = e.target.value
+    //   document.getElementById('num-balls-output').innerHTML = this.maxBalls
+    // })
+  
     this.canvas.addEventListener('click', (e) => {
       if (this.lineStart === undefined && this.lines.length === 0) {
         this.audioContext.resume()
@@ -81,22 +158,30 @@ class Game {
     });
 
     this.canvas.addEventListener('spawn-ball', (e) => {
-      const ball = new Ball(e.detail.x, e.detail.y)
-      console.log('got event!', e)
-      this.balls.push(ball)
+      if (this.balls.length < this.maxBalls) {
+        const ball = new Ball(e.detail.x, e.detail.y)
+        this.balls.push(ball)
+      }
     })
 
     this.canvas.addEventListener('play-tone', (e) => {
       const scale = e.detail.y / this.canvas.height
-      const oscillator = this.audioContext.createOscillator();
+      const oscillator = this.audioContext.createOscillator()
 
-      oscillator.type = 'sine';
-      const hz = 50 * scale
-      console.log(hz)
-      oscillator.frequency.setValueAtTime(hz, this.audioContext.currentTime); // value in hertz
-      oscillator.connect(this.audioContext.destination);
-      oscillator.start();
-      setTimeout(() => oscillator.stop(), 100)
+      const gainNode = this.audioContext.createGain()
+      gainNode.gain.value = 0.5
+
+      oscillator.type = 'sine'
+      const hz = this.hz * scale
+      oscillator.connect(gainNode)
+      oscillator.frequency.setValueAtTime(hz, this.audioContext.currentTime) // value in hertz
+      gainNode.connect(this.audioContext.destination)
+      oscillator.start()
+      // oscillator.stop()
+      // gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.1);
+      setTimeout(() => {
+        gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.015);
+      }, 100)
     })
   }
 

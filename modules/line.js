@@ -8,7 +8,7 @@ export class Line {
     this.vector = new Vec2(this.end)
     this.vector.sub(this.start)
 
-    this.color = 'black'
+    this.color = 'white'
   }
 
   isLeft(vector) {

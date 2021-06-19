@@ -7,10 +7,13 @@ export class Ball {
     this.direction = new Vec2({ x: 0, y: 0})
     this.speed = new Vec2({ x: 0, y: 0})
     this.radius = 5
-    this.gravityMultiplier = 10
-    this.terminalSpeed = 100
-    this.color = 'black'
+    this.renderRadius = this.radius
+    this.color = 'white'
+    this.currentColor = 'white'
+    this.collisionColor = 'red'
     this.deleteMe = false
+    this.shrinkFactor = 10
+    this.shrinkInterval = undefined
   }
 
   intersect(line) {
@@ -36,7 +39,16 @@ export class Ball {
     }
   }
 
-  update(deltaTime, lines) {
+  shrinkRenderRadius(deltaTime) {
+    if (this.renderRadius <= this.radius) {
+      this.currentColor = this.color
+      clearInterval(this.shrinkInterval)
+      return
+    }
+    this.renderRadius -= deltaTime * this.shrinkFactor
+  }
+
+  update(deltaTime, lines, gravityMultiplier, terminalSpeed) {
     // Check for collisions
     for (const line of lines) {
       const res = this.intersect(line)
@@ -44,7 +56,8 @@ export class Ball {
         const event = new CustomEvent('play-tone', { detail: new Vec2(this.position) });
         this.canvas.dispatchEvent(event)
 
-        this.color = 'red'
+        this.currentColor = this.collisionColor
+        this.renderRadius = 2 * this.radius
 
         const isLeft = line.isLeft(this.position)
         
@@ -52,18 +65,23 @@ export class Ball {
         const normal = !isLeft ? force.normalCW() : force.normalCCW()
         normal.normalize()
 
-        const friction = 2
+        const friction = 0
         const speed = Math.max(0, this.speed.length() - friction)
 
         normal.scale(speed)
         this.speed = new Vec2(normal)
-        setTimeout(() => this.color = 'black', 2000)
+        if (this.shrinkInterval) {
+          clearInterval(this.shrinkInterval)
+        }
+        this.shrinkInterval = setInterval(() => {
+          this.shrinkRenderRadius(deltaTime)
+        }, 10);
       }
     }
 
     // Add "gravity"
-    this.speed.add({ x: 0, y: 9.82 * deltaTime * this.gravityMultiplier })
-    this.speed.min(this.terminalSpeed)
+    this.speed.add({ x: 0, y: 9.82 * deltaTime * gravityMultiplier })
+    this.speed.min(terminalSpeed)
     
     if (this.direction.x === 0 && this.direction.y === 0) {
       this.direction = new Vec2(this.speed)
@@ -84,9 +102,9 @@ export class Ball {
 
   draw(context) {
     context.beginPath();
-    context.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2, true);
+    context.arc(this.position.x, this.position.y, this.renderRadius, 0, Math.PI * 2, true);
     context.closePath();
-    context.fillStyle = this.color;
+    context.fillStyle = this.currentColor;
     context.fill();
   }
 }
