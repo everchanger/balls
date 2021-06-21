@@ -13,6 +13,7 @@ class Game {
     this.hz = 100
     this.gravityMultiplier = 10
     this.terminalSpeed = 100
+    this.showControls = false
 
     this.controls = [
       {
@@ -21,7 +22,7 @@ class Game {
           min: '0',
           max: '20',
         },
-        label: 'Number of balls',
+        label: 'Max # of balls',
         variable: 'maxBalls'
       },
       {
@@ -52,8 +53,6 @@ class Game {
         variable: 'terminalSpeed'
       },
     ]
-
-    this.spawner = new BallSpawner( new Vec2({x: this.canvas.width / 2, y: 10 }), 2)
   }
  
   update() {
@@ -99,9 +98,12 @@ class Game {
   
   init() {
     console.log('init')
+    this.canvas.width = window.innerWidth
+    this.canvas.height = window.innerHeight
     this.setupUIInputs()
     this.setupEventListeners();
-    
+
+    this.spawner = new BallSpawner( new Vec2({x: this.canvas.width / 2, y: 10 }), 2)
     this.lastDraw = performance.now()
     window.requestAnimationFrame((hrt) => this.mainLoop(hrt))
   }
@@ -110,8 +112,9 @@ class Game {
     const controlSection = document.getElementById('control-section')
     for (const control of this.controls) {
       const wrapper = document.createElement('div')
-      const element = document.createElement('input')
+      const inputOutputWrapper = document.createElement('div')
       const labelElement = document.createElement('label')
+      const element = document.createElement('input')
       const outputElement = document.createElement('span')
 
       labelElement.innerHTML = control.label
@@ -127,25 +130,42 @@ class Game {
         outputElement.innerHTML = this[control.variable]
       })
 
+      inputOutputWrapper.appendChild(element)
+      inputOutputWrapper.appendChild(outputElement)
       wrapper.appendChild(labelElement)
-      wrapper.appendChild(element)
-      wrapper.appendChild(outputElement)
+      wrapper.appendChild(inputOutputWrapper)
       controlSection.appendChild(wrapper)
     }
   }
 
   setupEventListeners() {
-    // document.getElementById('num-balls').addEventListener('input', (e) => {
-    //   this.maxBalls = e.target.value
-    //   document.getElementById('num-balls-output').innerHTML = this.maxBalls
-    // })
-  
+    window.addEventListener('resize', () => {
+      this.canvas.width = window.innerWidth
+      this.canvas.height = window.innerHeight
+    });
+
+    const controlButton = document.getElementById('control-toggle')
+    const controlSection = document.getElementById('control-section')
+
+    document.getElementById('control-toggle').addEventListener('click', (e) => {
+      this.showControls = !this.showControls
+      console.log('clicked', this.showControls)
+      if (this.showControls) {
+        controlSection.style.display = 'block'
+        // controlButton.style.display = 'none'
+      } else {
+        controlSection.style.display = 'none'
+        // controlButton.style.display = 'block'
+      }
+    })
+
     this.canvas.addEventListener('click', (e) => {
       if (this.lineStart === undefined && this.lines.length === 0) {
         this.audioContext.resume()
       }
 
-      const position = new Vec2({ x: e.pageX - this.canvas.offsetLeft, y: e.pageY - this.canvas.offsetTop })
+      const parent = this.canvas.offsetParent
+      const position = new Vec2({ x: e.pageX - (this.canvas.offsetLeft + parent.offsetLeft), y: e.pageY - (this.canvas.offsetTop + parent.offsetTop) })
 
       if (this.lineStart) {
         const line = new Line(this.lineStart, position)
