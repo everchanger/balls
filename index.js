@@ -10,9 +10,10 @@ class Game {
     this.deltaTime = 0
     this.lastDraw = 0
     this.maxBalls = 10
-    this.hz = 100
+    this.hz = 500
     this.gravityMultiplier = 10
     this.terminalSpeed = 100
+    this.friction = 1
     this.showControls = false
 
     this.controls = [
@@ -28,8 +29,8 @@ class Game {
       {
         attributes: {
           type: 'range',
-          min: '0',
-          max: '4000',
+          min: '100',
+          max: '2000',
         },
         label: 'Hz',
         variable: 'hz'
@@ -46,6 +47,15 @@ class Game {
       {
         attributes: {
           type: 'range',
+          min: '-10',
+          max: '50',
+        },
+        label: 'Friction',
+        variable: 'friction'
+      },
+      {
+        attributes: {
+          type: 'range',
           min: '50',
           max: '200',
         },
@@ -58,7 +68,7 @@ class Game {
   update() {
     this.spawner.update(this.deltaTime)
     for (const ball of this.balls) {
-      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed)
+      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed, this.friction)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
   }

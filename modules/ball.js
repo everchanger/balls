@@ -14,20 +14,34 @@ export class Ball {
     this.deleteMe = false
     this.shrinkFactor = 10
     this.shrinkInterval = undefined
+    this.debugPoints = []
   }
 
   intersect(line) {
-    const dxc = this.position.x - line.start.x
-    const dyc = this.position.y - line.start.y
+    const startToBall = new Vec2(this.position)
+    startToBall.sub(line.start)
+    const startToEnd = new Vec2(line.end)
+    startToEnd.sub(line.start)
 
+    const projectedDirection = startToBall.projectOn(startToEnd)
+
+    const closestPoint = new Vec2(line.start)
+    closestPoint.add(projectedDirection)
+
+    const ballToLine = new Vec2(this.position)
+    ballToLine.sub(closestPoint)
+    const length = ballToLine.length()
+    
+    
+    
+    if (length > this.radius) {
+      return false
+    }
+
+    // Check if ball is between start and end of line
     const dxl = line.end.x - line.start.x
     const dyl = line.end.y - line.start.y
 
-    const cross = dxc * dyl - dyc * dxl
-    const threshold = this.radius**3
-    if (Math.abs(cross) > threshold) {
-      return false
-    }
     if (Math.abs(dxl) >= Math.abs(dyl)) {
       return dxl > 0 ? 
         line.start.x <= this.position.x && this.position.x <= line.end.x :
@@ -37,6 +51,28 @@ export class Ball {
         line.start.y <= this.position.y && this.position.y <= line.end.y :
         line.end.y <= this.position.y && this.position.y <= line.start.y
     }
+
+
+    // const dxc = this.position.x - line.start.x
+    // const dyc = this.position.y - line.start.y
+
+    // const dxl = line.end.x - line.start.x
+    // const dyl = line.end.y - line.start.y
+
+    // const cross = dxc * dyl - dyc * dxl
+    // const threshold = this.radius**3
+    // if (Math.abs(cross) > threshold) {
+    //   return false
+    // }
+    // if (Math.abs(dxl) >= Math.abs(dyl)) {
+    //   return dxl > 0 ? 
+    //     line.start.x <= this.position.x && this.position.x <= line.end.x :
+    //     line.end.x <= this.position.x && this.position.x <= line.start.x
+    // } else {
+    //   return dyl > 0 ? 
+    //     line.start.y <= this.position.y && this.position.y <= line.end.y :
+    //     line.end.y <= this.position.y && this.position.y <= line.start.y
+    // }
   }
 
   shrinkRenderRadius(deltaTime) {
@@ -48,8 +84,9 @@ export class Ball {
     this.renderRadius -= deltaTime * this.shrinkFactor
   }
 
-  update(deltaTime, lines, gravityMultiplier, terminalSpeed) {
+  update(deltaTime, lines, gravityMultiplier, terminalSpeed, friction) {
     // Check for collisions
+    this.debugPoints = []
     for (const line of lines) {
       const res = this.intersect(line)
       if (res) {
@@ -65,7 +102,6 @@ export class Ball {
         const normal = !isLeft ? force.normalCW() : force.normalCCW()
         normal.normalize()
 
-        const friction = 0
         const speed = Math.max(0, this.speed.length() - friction)
 
         normal.scale(speed)
@@ -106,5 +142,13 @@ export class Ball {
     context.closePath();
     context.fillStyle = this.currentColor;
     context.fill();
+
+    for (const point of this.debugPoints) {
+      context.beginPath();
+      context.moveTo(point.start.x, point.start.y);
+      context.lineTo(point.end.x, point.end.y);
+      context.strokeStyle = point.color;
+      context.stroke();
+    } 
   }
 }

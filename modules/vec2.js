@@ -31,7 +31,8 @@ export class Vec2 {
   }
 
   length() {
-    return Math.sqrt(this.dot(this));
+    // return Math.sqrt(this.dot(this));
+    return Math.hypot(this.x, this.y)
   }
 
   min(max) {
@@ -61,5 +62,12 @@ export class Vec2 {
   scale(scale) {
     this.x *= scale
     this.y *= scale
+  }
+
+  projectOn(vector) {
+    const normalized = new Vec2(vector)
+    normalized.normalize()
+    normalized.scale(this.dot(normalized))
+    return normalized
   }
 }
