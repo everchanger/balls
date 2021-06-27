@@ -4,6 +4,7 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.synth = new Tone.PolySynth(Tone.Synth).toDestination()
     this.balls = []
     this.lines = []
     this.lineStart = undefined
@@ -14,7 +15,12 @@ class Game {
     this.gravityMultiplier = 10
     this.terminalSpeed = 100
     this.friction = 1
+    this.drag = this.gravityMultiplier / 10
     this.showControls = false
+
+    const toneScale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+    const numericalScale = [1, 2, 3, 4, 5, 6]
+    this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`))
 
     this.controls = [
       {
@@ -68,7 +74,7 @@ class Game {
   update() {
     this.spawner.update(this.deltaTime)
     for (const ball of this.balls) {
-      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed, this.friction)
+      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed, this.friction, this.drag)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
   }
@@ -171,7 +177,7 @@ class Game {
 
     this.canvas.addEventListener('click', (e) => {
       if (this.lineStart === undefined && this.lines.length === 0) {
-        this.audioContext.resume()
+        Tone.start()
       }
 
       const parent = this.canvas.offsetParent
@@ -196,30 +202,41 @@ class Game {
 
     this.canvas.addEventListener('play-tone', (e) => {
       const scale = e.detail.y / this.canvas.height
-      const oscillator = this.audioContext.createOscillator()
+      // const oscillator = this.audioContext.createOscillator()
 
-      const gainNode = this.audioContext.createGain()
-      gainNode.gain.value = 0.5
+      // const gainNode = this.audioContext.createGain()
+      // gainNode.gain.value = 0.5
 
-      oscillator.type = 'sine'
-      const hz = this.hz * scale
-      oscillator.connect(gainNode)
-      oscillator.frequency.setValueAtTime(hz, this.audioContext.currentTime) // value in hertz
-      gainNode.connect(this.audioContext.destination)
-      oscillator.start()
-      // oscillator.stop()
-      // gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.1);
-      setTimeout(() => {
-        gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.015);
-      }, 100)
+      // oscillator.type = 'sine'
+      // const hz = this.hz * scale
+      // oscillator.connect(gainNode)
+      // oscillator.frequency.setValueAtTime(hz, this.audioContext.currentTime) // value in hertz
+      // gainNode.connect(this.audioContext.destination)
+      // oscillator.start()
+      // setTimeout(() => {
+      //   gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.015);
+      // }, 100)
+      
+      const indexToPlay = Math.round(this.fullScale.length * scale)
+      console.log('playing an', this.fullScale[indexToPlay])
+
+      const now = Tone.now()
+      this.synth.triggerAttackRelease(this.fullScale[indexToPlay], "8n", now)
+      // this.synth.triggerAttackRelease("E4", "8n", now + 0.5)
+      // this.synth.triggerAttackRelease("G4", "8n", now + 1)
     })
-  }
-
-  
+  } 
 }
 
 window.init = function init() {
   console.log('global init')
-  const game = new Game()
-  game.init()
+
+  const script = document.createElement('script')
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.26/Tone.min.js'
+  document.head.append(script)
+
+  script.onload = () => {
+    const game = new Game()
+   game.init()
+  }
 }

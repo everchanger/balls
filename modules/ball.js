@@ -32,8 +32,6 @@ export class Ball {
     ballToLine.sub(closestPoint)
     const length = ballToLine.length()
     
-    
-    
     if (length > this.radius) {
       return false
     }
@@ -51,28 +49,6 @@ export class Ball {
         line.start.y <= this.position.y && this.position.y <= line.end.y :
         line.end.y <= this.position.y && this.position.y <= line.start.y
     }
-
-
-    // const dxc = this.position.x - line.start.x
-    // const dyc = this.position.y - line.start.y
-
-    // const dxl = line.end.x - line.start.x
-    // const dyl = line.end.y - line.start.y
-
-    // const cross = dxc * dyl - dyc * dxl
-    // const threshold = this.radius**3
-    // if (Math.abs(cross) > threshold) {
-    //   return false
-    // }
-    // if (Math.abs(dxl) >= Math.abs(dyl)) {
-    //   return dxl > 0 ? 
-    //     line.start.x <= this.position.x && this.position.x <= line.end.x :
-    //     line.end.x <= this.position.x && this.position.x <= line.start.x
-    // } else {
-    //   return dyl > 0 ? 
-    //     line.start.y <= this.position.y && this.position.y <= line.end.y :
-    //     line.end.y <= this.position.y && this.position.y <= line.start.y
-    // }
   }
 
   shrinkRenderRadius(deltaTime) {
@@ -84,10 +60,14 @@ export class Ball {
     this.renderRadius -= deltaTime * this.shrinkFactor
   }
 
-  update(deltaTime, lines, gravityMultiplier, terminalSpeed, friction) {
+  update(deltaTime, lines, gravityMultiplier, terminalSpeed, friction, drag) {
     // Check for collisions
     this.debugPoints = []
     for (const line of lines) {
+      if (!line.isPointInBoundingBox(this.position)) {
+        continue
+      }
+
       const res = this.intersect(line)
       if (res) {
         const event = new CustomEvent('play-tone', { detail: new Vec2(this.position) });
@@ -117,8 +97,17 @@ export class Ball {
 
     // Add "gravity"
     this.speed.add({ x: 0, y: 9.82 * deltaTime * gravityMultiplier })
-    this.speed.min(terminalSpeed)
     
+    // Add "drag"
+    if (this.speed.length()) {
+      const dragVector = new Vec2(this.speed)
+      dragVector.negate()
+      dragVector.scale(drag * deltaTime)
+      this.speed.add(dragVector)
+    }
+
+    this.speed.min(terminalSpeed)
+
     if (this.direction.x === 0 && this.direction.y === 0) {
       this.direction = new Vec2(this.speed)
     }

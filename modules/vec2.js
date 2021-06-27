@@ -7,6 +7,11 @@ export class Vec2 {
     this.y = vector.y
   }
 
+  negate() {
+    this.x = -this.x
+    this.y = -this.y
+  }
+
   normalize() {
     if (this.x === 0 && this.y === 0) {
       return
