@@ -194,7 +194,6 @@ class Game {
       } else {
         this.lineStart = position
       }
-      // this.balls.push(new Ball(e.pageX - this.canvas.offsetLeft, e.pageY - this.canvas.offsetTop))
     });
 
     this.canvas.addEventListener('spawn-ball', (e) => {
@@ -220,8 +219,6 @@ class Game {
 
       const now = Tone.now()
       this.synth.triggerAttackRelease(this.fullScale[indexToPlay], noteLength + 'n', now)
-      // this.synth.triggerAttackRelease("E4", "8n", now + 0.5)
-      // this.synth.triggerAttackRelease("G4", "8n", now + 1)
     })
   } 
 }

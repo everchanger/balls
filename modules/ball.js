@@ -135,10 +135,14 @@ export class Ball {
   }
 
   draw(context) {
+    const gradiant = context.createRadialGradient(this.position.x, this.position.y, this.renderRadius*0.6, this.position.x, this.position.y, this.renderRadius * 1);
+    gradiant.addColorStop(0, this.currentColor);
+    gradiant.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
     context.beginPath();
-    context.arc(this.position.x, this.position.y, this.renderRadius, 0, Math.PI * 2, true);
+    context.arc(this.position.x, this.position.y, this.renderRadius, 255, Math.PI * 2, true);
     context.closePath();
-    context.fillStyle = this.currentColor;
+    context.fillStyle = gradiant;
     context.fill();
 
     for (const point of this.debugPoints) {
