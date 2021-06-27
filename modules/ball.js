@@ -2,6 +2,7 @@ import { Vec2 } from './index.js'
 
 export class Ball {
   constructor(x, y) {
+    this.pallete = ['#FA448C', '#FEC859', '#43B5A0', '#1B96F4']
     this.canvas = document.getElementById('canvas');
     this.position = new Vec2({ x, y })
     this.direction = new Vec2({ x: 0, y: 0})
@@ -10,11 +11,12 @@ export class Ball {
     this.renderRadius = this.radius
     this.color = 'white'
     this.currentColor = 'white'
-    this.collisionColor = 'red'
+    this.collisionColor = this.pallete[Math.round(Math.random() * (this.pallete.length - 1))]
     this.deleteMe = false
     this.shrinkFactor = 10
     this.shrinkInterval = undefined
     this.debugPoints = []
+
   }
 
   intersect(line) {
@@ -68,13 +70,19 @@ export class Ball {
         continue
       }
 
+      const speedLength = this.speed.length()
       const res = this.intersect(line)
       if (res) {
-        const event = new CustomEvent('play-tone', { detail: new Vec2(this.position) });
+        const event = new CustomEvent('play-tone', { detail: { position: new Vec2(this.position), speed: new Vec2(this.speed) } });
         this.canvas.dispatchEvent(event)
+        line.hasBeenHit(deltaTime)
 
-        this.currentColor = this.collisionColor
-        this.renderRadius = 2 * this.radius
+        
+        const scale = this.position.y / this.canvas.height
+        const color = this.pallete[Math.round(scale * (this.pallete.length - 1))]
+
+        this.currentColor = color
+        this.renderRadius = 2 * this.radius * (speedLength * 0.005)
 
         const isLeft = line.isLeft(this.position)
         
@@ -82,7 +90,8 @@ export class Ball {
         const normal = !isLeft ? force.normalCW() : force.normalCCW()
         normal.normalize()
 
-        const speed = Math.max(0, this.speed.length() - friction)
+        const collisionBoost = 1.1
+        const speed = Math.max(0, (speedLength * collisionBoost) - friction)
 
         normal.scale(speed)
         this.speed = new Vec2(normal)
@@ -106,7 +115,7 @@ export class Ball {
       this.speed.add(dragVector)
     }
 
-    this.speed.min(terminalSpeed)
+    // this.speed.min(terminalSpeed)
 
     if (this.direction.x === 0 && this.direction.y === 0) {
       this.direction = new Vec2(this.speed)

@@ -4,7 +4,7 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    this.synth = new Tone.PolySynth(Tone.Synth).toDestination()
+    this.synth = new Tone.PolySynth(Tone.AMSynth).toDestination()
     this.balls = []
     this.lines = []
     this.lineStart = undefined
@@ -12,15 +12,15 @@ class Game {
     this.lastDraw = 0
     this.maxBalls = 10
     this.hz = 500
-    this.gravityMultiplier = 10
-    this.terminalSpeed = 100
+    this.gravityMultiplier = 27
+    this.terminalSpeed = 150
     this.friction = 1
-    this.drag = this.gravityMultiplier / 10
+    this.drag = 0.5
     this.showControls = false
 
     const toneScale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
     const numericalScale = [1, 2, 3, 4, 5, 6]
-    this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`))
+    this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`)).reverse()
 
     this.controls = [
       {
@@ -88,8 +88,12 @@ class Game {
     }
 
     // context.clearRect(0,0, canvas.width, canvas.height);
-    context.fillStyle = 'rgba(0, 0, 0, 255)';
-    context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    const gradiant = context.createLinearGradient(0, 0, 0, canvas.height)
+    gradiant.addColorStop(0, '#331A38')
+    gradiant.addColorStop(1, '#111')
+
+    context.fillStyle = gradiant
+    context.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
     this.spawner.draw(context)
 
@@ -201,27 +205,21 @@ class Game {
     })
 
     this.canvas.addEventListener('play-tone', (e) => {
-      const scale = e.detail.y / this.canvas.height
-      // const oscillator = this.audioContext.createOscillator()
+      const maxSpeed = 500
+      const speed = e.detail.speed.length()
+      const speedFraction = speed / maxSpeed
 
-      // const gainNode = this.audioContext.createGain()
-      // gainNode.gain.value = 0.5
+      const maxNoteLength = 12
+      const noteFloor = 2
+      const noteLength = Math.round(speedFraction * maxNoteLength) + noteFloor
 
-      // oscillator.type = 'sine'
-      // const hz = this.hz * scale
-      // oscillator.connect(gainNode)
-      // oscillator.frequency.setValueAtTime(hz, this.audioContext.currentTime) // value in hertz
-      // gainNode.connect(this.audioContext.destination)
-      // oscillator.start()
-      // setTimeout(() => {
-      //   gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.015);
-      // }, 100)
+      const scale = e.detail.position.y / this.canvas.height
       
-      const indexToPlay = Math.round(this.fullScale.length * scale)
-      console.log('playing an', this.fullScale[indexToPlay])
+      const indexToPlay = Math.round((this.fullScale.length - 1) * scale)
+      console.log('playing an', this.fullScale[indexToPlay], noteLength+'n')
 
       const now = Tone.now()
-      this.synth.triggerAttackRelease(this.fullScale[indexToPlay], "8n", now)
+      this.synth.triggerAttackRelease(this.fullScale[indexToPlay], noteLength + 'n', now)
       // this.synth.triggerAttackRelease("E4", "8n", now + 0.5)
       // this.synth.triggerAttackRelease("G4", "8n", now + 1)
     })

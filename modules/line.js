@@ -8,7 +8,14 @@ export class Line {
     this.vector = new Vec2(this.end)
     this.vector.sub(this.start)
 
-    this.color = 'white'
+    this.color = 'rgba(255, 255, 255, 0.5)'
+    this.currentColor = this.color
+    this.collisionColor = 'white'
+    this.shrinkInterval = undefined
+    this.width = 1.5
+    this.collisionWidth = 5
+    this.currentWidth = this.width
+    this.shrinkFactor = 10
   }
 
   isLeft(vector) {
@@ -30,6 +37,26 @@ export class Line {
     }
   }
 
+  shrinkRenderRadius(deltaTime) {
+    if (this.currentWidth <= this.width) {
+      this.currentColor = this.color
+      clearInterval(this.shrinkInterval)
+      return
+    }
+    this.currentWidth -= deltaTime * this.shrinkFactor
+  }
+
+  hasBeenHit(deltaTime) {
+    if (this.shrinkInterval) {
+      clearInterval(this.shrinkInterval)
+    }
+    this.currentColor = this.collisionColor
+    this.currentWidth = this.collisionWidth
+    this.shrinkInterval = setInterval(() => {
+      this.shrinkRenderRadius(deltaTime)
+    }, 10);
+  }
+
   update(deltaTime) {
 
   }
@@ -39,10 +66,15 @@ export class Line {
       return
     }
 
+    const currentWidth = context.lineWidth
+
+    context.lineWidth = this.currentWidth
     context.beginPath();
     context.moveTo(this.start.x, this.start.y);
     context.lineTo(this.end.x, this.end.y);
-    context.strokeStyle = this.color;
+    context.strokeStyle = this.currentColor;
     context.stroke();
+
+    context.lineWidth = currentWidth
   }
 }
