@@ -1,7 +1,7 @@
 import { Vec2 } from './index.js'
 
 export class Ball {
-  constructor(x, y) {
+  constructor(x, y, spawner) {
     this.pallete = ['#FA448C', '#FEC859', '#43B5A0', '#1B96F4']
     this.canvas = document.getElementById('canvas');
     this.position = new Vec2({ x, y })
@@ -16,7 +16,7 @@ export class Ball {
     this.shrinkFactor = 10
     this.shrinkInterval = undefined
     this.debugPoints = []
-
+    this.spawner = spawner
   }
 
   intersect(line) {
@@ -62,7 +62,7 @@ export class Ball {
     this.renderRadius -= deltaTime * this.shrinkFactor
   }
 
-  update(deltaTime, lines, gravityMultiplier, terminalSpeed, friction, drag) {
+  update(deltaTime, lines, gravityMultiplier, friction, drag) {
     // Check for collisions
     this.debugPoints = []
     for (const line of lines) {
@@ -73,7 +73,7 @@ export class Ball {
       const speedLength = this.speed.length()
       const res = this.intersect(line)
       if (res) {
-        const event = new CustomEvent('play-tone', { detail: { position: new Vec2(this.position), speed: new Vec2(this.speed) } });
+        const event = new CustomEvent('play-tone', { detail: { spawner: this.spawner, position: new Vec2(this.position), speed: new Vec2(this.speed) } });
         this.canvas.dispatchEvent(event)
         line.hasBeenHit(deltaTime)
 
@@ -114,8 +114,6 @@ export class Ball {
       dragVector.scale(drag * deltaTime)
       this.speed.add(dragVector)
     }
-
-    // this.speed.min(terminalSpeed)
 
     if (this.direction.x === 0 && this.direction.y === 0) {
       this.direction = new Vec2(this.speed)

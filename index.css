@@ -15,12 +15,17 @@
 }
 
 #control-section {
+  /* display: none; */
+}
+
+#control-toggle {
   display: none;
 }
 
 #control-section > div {
   display: flex;
   justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
 #control-section > div > div {
@@ -32,6 +37,25 @@
 #control-section span {
   width: 2rem;
   flex-shrink: 0;
+}
+
+#control-section .select-wrapper, #control-section select {
+  width: 100%;
+}
+
+.option-AMSynth {
+  color: white;
+  background-color: green;
+}
+
+.option-FMSynth {
+  color: white;
+  background-color: red;
+}
+
+.option-Synth {
+  color: white;
+  background-color: blue;
 }
 
 .container {

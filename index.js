@@ -4,17 +4,18 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    this.synth = new Tone.PolySynth(Tone.AMSynth).toDestination()
+    this.currentSynth = Tone.AMSynth
+    this.synth = new Tone.PolySynth(this.currentSynth).toDestination()
     this.balls = []
+    this.spawners = []
     this.lines = []
     this.lineStart = undefined
     this.deltaTime = 0
     this.lastDraw = 0
     this.maxBalls = 10
-    this.hz = 500
     this.gravityMultiplier = 27
-    this.terminalSpeed = 150
     this.friction = 1
+    this.drawTool = 'emitter'
     this.drag = 0.5
     this.showControls = false
 
@@ -24,6 +25,7 @@ class Game {
 
     this.controls = [
       {
+        type: 'input',
         attributes: {
           type: 'range',
           min: '0',
@@ -33,15 +35,7 @@ class Game {
         variable: 'maxBalls'
       },
       {
-        attributes: {
-          type: 'range',
-          min: '100',
-          max: '2000',
-        },
-        label: 'Hz',
-        variable: 'hz'
-      },
-      {
+        type: 'input',
         attributes: {
           type: 'range',
           min: '1',
@@ -51,6 +45,7 @@ class Game {
         variable: 'gravityMultiplier'
       },
       {
+        type: 'input',
         attributes: {
           type: 'range',
           min: '-10',
@@ -60,21 +55,52 @@ class Game {
         variable: 'friction'
       },
       {
-        attributes: {
-          type: 'range',
-          min: '50',
-          max: '200',
-        },
-        label: 'Terminal speed',
-        variable: 'terminalSpeed'
+        type: 'select',
+        options: [
+          {
+            value: 'line',
+            name: 'Line'
+          },
+          {
+            value: 'emitter',
+            name: 'Emitter'
+          },
+        ],
+        label: 'Draw',
+        variable: 'drawTool',
+        callback: () => { this.lineStart = undefined }
+      },
+      {
+        type: 'select',
+        options: [
+          {
+            value: 'AMSynth',
+            name: 'AM Synth'
+          },
+          {
+            value: 'FMSynth',
+            name: 'FM Synth'
+          },
+          {
+            value: 'Synth',
+            name: 'Synth'
+          },
+        ],
+        label: 'Synth',
+        variable: 'currentSynth',
+        callback: () => { 
+          this.synth = new Tone.PolySynth(Tone[this.currentSynth]).toDestination()
+        }
       },
     ]
   }
  
   update() {
-    this.spawner.update(this.deltaTime)
+    for (const spawner of this.spawners) {
+      spawner.update(this.deltaTime)
+    }
     for (const ball of this.balls) {
-      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.terminalSpeed, this.friction, this.drag)
+      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.friction, this.drag)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
   }
@@ -95,7 +121,9 @@ class Game {
     context.fillStyle = gradiant
     context.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
-    this.spawner.draw(context)
+    for (const spawner of this.spawners) {
+      spawner.draw(context)
+    }
 
     for (const ball of this.balls) {
       ball.draw(context)
@@ -123,7 +151,6 @@ class Game {
     this.setupUIInputs()
     this.setupEventListeners();
 
-    this.spawner = new BallSpawner( new Vec2({x: this.canvas.width / 2, y: 10 }), 2)
     this.lastDraw = performance.now()
     window.requestAnimationFrame((hrt) => this.mainLoop(hrt))
   }
@@ -134,24 +161,49 @@ class Game {
       const wrapper = document.createElement('div')
       const inputOutputWrapper = document.createElement('div')
       const labelElement = document.createElement('label')
-      const element = document.createElement('input')
-      const outputElement = document.createElement('span')
-
       labelElement.innerHTML = control.label
-      outputElement.innerHTML = this[control.variable]
-
-      for (const attribute in control.attributes) {
-        element.setAttribute(attribute, control.attributes[attribute])
-      }
-
-      element.setAttribute('value', this[control.variable])
-      element.addEventListener('input', (e) => {
-        this[control.variable] = e.target.value
+      let element
+      let outputElement
+      if (control.type === 'input') {
+        element = document.createElement('input')
+        outputElement = document.createElement('span')
         outputElement.innerHTML = this[control.variable]
-      })
+  
+        for (const attribute in control.attributes) {
+          element.setAttribute(attribute, control.attributes[attribute])
+        }
+  
+        element.setAttribute('value', this[control.variable])
+        element.addEventListener('input', (e) => {
+          this[control.variable] = e.target.value
+          outputElement.innerHTML = this[control.variable]
+        })
+      } else if (control.type === 'select') {
+        element = document.createElement('select')
+        for (const option of control.options) {
+          const optionElement = document.createElement('option')
+          optionElement.setAttribute('value', option.value)
+          optionElement.innerHTML = option.name
+          optionElement.classList = `option-${option.value}`
+          if (this[control.variable] === option.value) {
+            optionElement.setAttribute('selected', true)
+          }
+          element.appendChild(optionElement)
+        }
+        element.addEventListener('change', (e) => {
+          this[control.variable] = e.target.value
+          if (control.callback) {
+            control.callback()
+          }
+        })
+        inputOutputWrapper.classList = ('select-wrapper')
+      }
+     
 
       inputOutputWrapper.appendChild(element)
-      inputOutputWrapper.appendChild(outputElement)
+      if (outputElement) {
+        inputOutputWrapper.appendChild(outputElement)
+      }
       wrapper.appendChild(labelElement)
       wrapper.appendChild(inputOutputWrapper)
       controlSection.appendChild(wrapper)
@@ -169,7 +221,6 @@ class Game {
 
     document.getElementById('control-toggle').addEventListener('click', (e) => {
       this.showControls = !this.showControls
-      console.log('clicked', this.showControls)
       if (this.showControls) {
         controlSection.style.display = 'block'
         // controlButton.style.display = 'none'
@@ -187,18 +238,24 @@ class Game {
       const parent = this.canvas.offsetParent
       const position = new Vec2({ x: e.pageX - (this.canvas.offsetLeft + parent.offsetLeft), y: e.pageY - (this.canvas.offsetTop + parent.offsetTop) })
 
-      if (this.lineStart) {
-        const line = new Line(this.lineStart, position)
-        this.lines.push(line)
-        this.lineStart = undefined
-      } else {
-        this.lineStart = position
+      if (this.drawTool === 'line') {
+        if (this.lineStart) {
+          const line = new Line(this.lineStart, position)
+          this.lines.push(line)
+          this.lineStart = undefined
+        } else {
+          this.lineStart = position
+        }
+      } else if (this.drawTool === 'emitter') {
+        const timer = this.spawners.length ? this.spawners[0].timer : 0
+        this.spawners.push(new BallSpawner(new Vec2(position), 2, this.currentSynth, timer))
       }
+      
     });
 
     this.canvas.addEventListener('spawn-ball', (e) => {
-      if (this.balls.length < this.maxBalls) {
-        const ball = new Ball(e.detail.x, e.detail.y)
+      if (this.balls.length < this.spawners.length * this.maxBalls) {
+        const ball = new Ball(e.detail.position.x, e.detail.position.y, e.detail.spawner)
         this.balls.push(ball)
       }
     })
@@ -218,7 +275,8 @@ class Game {
       console.log('playing an', this.fullScale[indexToPlay], noteLength+'n')
 
       const now = Tone.now()
-      this.synth.triggerAttackRelease(this.fullScale[indexToPlay], noteLength + 'n', now)
+      const synth = e.detail.spawner.synth
+      synth.triggerAttackRelease(this.fullScale[indexToPlay], noteLength + 'n', now)
     })
   } 
 }
