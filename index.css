@@ -58,6 +58,16 @@
   background-color: blue;
 }
 
+.option-MembraneSynth {
+  color: black;
+  background-color: orange;
+}
+
+.option-MetalSynth {
+  color: black;
+  background-color: aqua;
+}
+
 .container {
   display: flex;
   justify-content: center;

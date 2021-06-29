@@ -79,18 +79,25 @@ export class Ball {
 
         
         const scale = this.position.y / this.canvas.height
-        const color = this.pallete[Math.round(scale * (this.pallete.length - 1))]
+        // const color = this.pallete[Math.round(scale * (this.pallete.length - 1))]
 
-        this.currentColor = color
+        this.currentColor = this.spawner.color // color
         this.renderRadius = 2 * this.radius * (speedLength * 0.005)
 
         const isLeft = line.isLeft(this.position)
         
         const force = new Vec2(line.vector)
         const normal = !isLeft ? force.normalCW() : force.normalCCW()
+        const normalizedSpeed = new Vec2(this.speed)
+
+        normalizedSpeed.normalize()
         normal.normalize()
 
-        const collisionBoost = 1.1
+        normalizedSpeed.scale(0.25)
+        normal.add(normalizedSpeed)
+        normal.normalize()
+
+        const collisionBoost = 1.0
         const speed = Math.max(0, (speedLength * collisionBoost) - friction)
 
         normal.scale(speed)

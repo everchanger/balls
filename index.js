@@ -4,7 +4,6 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    this.currentSynth = Tone.AMSynth
     this.synth = new Tone.PolySynth(this.currentSynth).toDestination()
     this.balls = []
     this.spawners = []
@@ -19,8 +18,8 @@ class Game {
     this.drag = 0.5
     this.showControls = false
 
-    const toneScale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-    const numericalScale = [1, 2, 3, 4, 5, 6]
+    const toneScale = ['C', 'D', 'E', 'F']
+    const numericalScale = [1, 2, 3, 4]
     this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`)).reverse()
 
     this.controls = [
@@ -84,6 +83,14 @@ class Game {
           {
             value: 'Synth',
             name: 'Synth'
+          },
+          {
+            value: 'MembraneSynth',
+            name: 'Membrane Synth'
+          },
+          {
+            value: 'MetalSynth',
+            name: 'Metal Synth'
           },
         ],
         label: 'Synth',
@@ -267,7 +274,7 @@ class Game {
 
       const maxNoteLength = 12
       const noteFloor = 2
-      const noteLength = Math.round(speedFraction * maxNoteLength) + noteFloor
+      const noteLength = maxNoteLength - Math.round(speedFraction * maxNoteLength) + noteFloor
 
       const scale = e.detail.position.y / this.canvas.height
       
