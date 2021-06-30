@@ -17,12 +17,19 @@ class Game {
     this.drawTool = 'emitter'
     this.drag = 0.5
     this.showControls = false
+    this.objectIdCounter = 1
+    this.actions = []
 
     const toneScale = ['C', 'D', 'E', 'F']
     const numericalScale = [1, 2, 3, 4]
     this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`)).reverse()
 
     this.controls = [
+      {
+        type: 'button',
+        label: 'Undo',
+        callback: () => this.undoLastAction()
+      },
       {
         type: 'input',
         attributes: {
@@ -185,6 +192,10 @@ class Game {
           this[control.variable] = e.target.value
           outputElement.innerHTML = this[control.variable]
         })
+      } else if (control.type === 'button') {
+        element = document.createElement('button')
+        element.innerHTML = control.label
+        element.addEventListener('click', control.callback)
       } else if (control.type === 'select') {
         element = document.createElement('select')
         for (const option of control.options) {
@@ -214,6 +225,23 @@ class Game {
       wrapper.appendChild(labelElement)
       wrapper.appendChild(inputOutputWrapper)
       controlSection.appendChild(wrapper)
+    }
+  }
+
+  addObjectAction(obj) {
+    obj.actionId = this.objectIdCounter
+    this.objectIdCounter++
+    this.actions.push(obj)
+  }
+
+  undoLastAction() {
+    if (this.actions.length) {
+      const lastAction = this.actions.pop()
+      if (lastAction instanceof Line) {
+        this.lines = this.lines.filter(object => object.actionId !== lastAction.actionId)
+      } else if (lastAction instanceof BallSpawner) {
+        this.spawners = this.spawners.filter(object => object.actionId !== lastAction.actionId)
+      }
     }
   }
 
@@ -248,14 +276,19 @@ class Game {
       if (this.drawTool === 'line') {
         if (this.lineStart) {
           const line = new Line(this.lineStart, position)
+
           this.lines.push(line)
           this.lineStart = undefined
+          this.addObjectAction(line)
         } else {
           this.lineStart = position
         }
       } else if (this.drawTool === 'emitter') {
         const timer = this.spawners.length ? this.spawners[0].timer : 0
-        this.spawners.push(new BallSpawner(new Vec2(position), 2, this.currentSynth, timer))
+        const spawner = new BallSpawner(new Vec2(position), 2, this.currentSynth, timer)
+
+        this.addObjectAction(spawner)
+        this.spawners.push(spawner)
       }
       
     });
