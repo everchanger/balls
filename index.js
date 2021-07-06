@@ -14,11 +14,15 @@ class Game {
     this.maxBalls = 10
     this.gravityMultiplier = 27
     this.friction = 1
-    this.drawTool = 'emitter'
     this.drag = 0.5
     this.showControls = false
     this.objectIdCounter = 1
     this.actions = []
+    this.isTouching = false
+    this.isHolding = false
+    this.timeHeld = 0
+    this.clickThreshold = 0.3
+    this.mousePosition = new Vec2(0, 0)
 
     const toneScale = ['C', 'D', 'E', 'F']
     const numericalScale = [1, 2, 3, 4]
@@ -64,22 +68,6 @@ class Game {
         type: 'select',
         options: [
           {
-            value: 'line',
-            name: 'Line'
-          },
-          {
-            value: 'emitter',
-            name: 'Emitter'
-          },
-        ],
-        label: 'Draw',
-        variable: 'drawTool',
-        callback: () => { this.lineStart = undefined }
-      },
-      {
-        type: 'select',
-        options: [
-          {
             value: 'AMSynth',
             name: 'AM Synth'
           },
@@ -117,6 +105,17 @@ class Game {
       ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.friction, this.drag)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
+    
+    if (this.isTouching) {
+      this.timeHeld += this.deltaTime
+      if (this.timeHeld >= this.clickThreshold) {
+        this.isHolding = true
+      }
+    }
+
+    if (this.lineStart && this.isHolding) {
+      this.lineStart = undefined
+    }
   }
 
   draw() {
@@ -127,7 +126,6 @@ class Game {
       return;
     }
 
-    // context.clearRect(0,0, canvas.width, canvas.height);
     const gradiant = context.createLinearGradient(0, 0, 0, canvas.height)
     gradiant.addColorStop(0, '#331A38')
     gradiant.addColorStop(1, '#111')
@@ -145,6 +143,29 @@ class Game {
 
     for (const line of this.lines) {
       line.draw(context)
+    }
+
+    if (this.lineStart) {
+      // Draw a point where the line will start, on desktop also draw a line to the mouse pointers current pos
+      context.beginPath();
+      context.arc(this.lineStart.x, this.lineStart.y, 2, 255, Math.PI * 2, true);
+      context.closePath();
+      context.fillStyle = 'green';
+      context.fill();
+
+      context.beginPath();
+      context.moveTo(this.lineStart.x, this.lineStart.y);
+      context.lineTo(this.mousePosition.x, this.mousePosition.y);
+      context.strokeStyle = 'green';
+      context.stroke();
+    }
+
+    if (this.isHolding) {
+      context.beginPath();
+      context.arc(this.mousePosition.x, this.mousePosition.y, 25, 255, Math.PI * 2, true);
+      context.closePath();
+      context.fillStyle = 'green';
+      context.fill();
     }
   }
 
@@ -245,6 +266,39 @@ class Game {
     }
   }
 
+  setMousePosition(event) {
+    if (event.changedTouches) {
+      event = event.changedTouches[0]
+    }
+    const parent = this.canvas.offsetParent
+    this.mousePosition = new Vec2({ x: event.pageX - (this.canvas.offsetLeft + parent.offsetLeft), y: event.pageY - (this.canvas.offsetTop + parent.offsetTop) })
+  }
+
+  handleClick() {
+    const position = new Vec2(this.mousePosition)
+    console.log('handle click')
+    
+    if (this.lineStart) {
+      const line = new Line(this.lineStart, position)
+
+      this.lines.push(line)
+      this.lineStart = undefined
+      this.addObjectAction(line)
+    } else {
+      this.lineStart = position
+    }
+  }
+
+  handleHeld() {
+    const position = new Vec2(this.mousePosition)
+
+    const timer = this.spawners.length ? this.spawners[0].timer : 0
+    const spawner = new BallSpawner(new Vec2(position), 2, this.currentSynth, timer)
+
+    this.addObjectAction(spawner)
+    this.spawners.push(spawner)
+  }
+
   setupEventListeners() {
     window.addEventListener('resize', () => {
       this.canvas.width = window.innerWidth
@@ -265,33 +319,40 @@ class Game {
       }
     })
 
-    this.canvas.addEventListener('click', (e) => {
+    const handleTouch = (e) => {
+      e.preventDefault();
+      this.setMousePosition(e)
       if (this.lineStart === undefined && this.lines.length === 0) {
         Tone.start()
       }
+      this.isTouching = true  
+    }
+    const handleTouchRelease = (e) => {
+      e.preventDefault();
+      this.setMousePosition(e)
 
-      const parent = this.canvas.offsetParent
-      const position = new Vec2({ x: e.pageX - (this.canvas.offsetLeft + parent.offsetLeft), y: e.pageY - (this.canvas.offsetTop + parent.offsetTop) })
-
-      if (this.drawTool === 'line') {
-        if (this.lineStart) {
-          const line = new Line(this.lineStart, position)
-
-          this.lines.push(line)
-          this.lineStart = undefined
-          this.addObjectAction(line)
-        } else {
-          this.lineStart = position
-        }
-      } else if (this.drawTool === 'emitter') {
-        const timer = this.spawners.length ? this.spawners[0].timer : 0
-        const spawner = new BallSpawner(new Vec2(position), 2, this.currentSynth, timer)
-
-        this.addObjectAction(spawner)
-        this.spawners.push(spawner)
+      if (this.timeHeld <= this.clickThreshold) {
+        this.handleClick(e)
+      } else {
+        this.handleHeld(e)
       }
-      
-    });
+      this.isTouching = false
+      this.isHolding = false
+      this.timeHeld = 0
+    }
+    const handleTouchMovement = (e) => {
+      e.preventDefault();
+      this.setMousePosition(e)
+    }
+
+    this.canvas.addEventListener('mousedown', (e) => handleTouch(e));
+    this.canvas.addEventListener('touchstart', (e) => handleTouch(e));
+
+    this.canvas.addEventListener('mouseup', (e) => handleTouchRelease(e))
+    this.canvas.addEventListener('touchend', (e) => handleTouchRelease(e))
+
+    this.canvas.addEventListener('mousemove', (e) => handleTouchMovement(e))
+    this.canvas.addEventListener('touchmove', (e) => handleTouchMovement(e))
 
     this.canvas.addEventListener('spawn-ball', (e) => {
       if (this.balls.length < this.spawners.length * this.maxBalls) {
