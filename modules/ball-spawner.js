@@ -55,4 +55,8 @@ export class BallSpawner {
     context.fillStyle = gradiant
     context.fill();
   }
+
+  handleRelativePosition() {
+    this.position = new Vec2({ x: this.position.x * this.canvas.width, y: this.position.y * this.canvas.height})
+  }
 }

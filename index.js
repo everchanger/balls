@@ -1,13 +1,14 @@
-import { Ball, Line, Vec2, BallSpawner } from './modules/index.js'
+import { Ball, Line, Vec2, BallSpawner, ControlManager, UIManager, ObjectManager } from './modules/index.js'
 
 class Game {
   constructor() {
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.isSoundInitiated = false
     this.synth = new Tone.PolySynth(this.currentSynth).toDestination()
+    this.objectManager = new ObjectManager(this.canvas)
+    this.controlManager = new ControlManager(this.canvas)
     this.balls = []
-    this.spawners = []
-    this.lines = []
     this.lineStart = undefined
     this.deltaTime = 0
     this.lastDraw = 0
@@ -15,24 +16,15 @@ class Game {
     this.gravityMultiplier = 27
     this.friction = 1
     this.drag = 0.5
-    this.showControls = false
-    this.objectIdCounter = 1
-    this.actions = []
-    this.isTouching = false
-    this.isHolding = false
-    this.timeHeld = 0
-    this.clickThreshold = 0.3
-    this.mousePosition = new Vec2(0, 0)
-
+    
     const toneScale = ['C', 'D', 'E', 'F']
     const numericalScale = [1, 2, 3, 4]
     this.fullScale = numericalScale.flatMap(num => toneScale.map(note => `${note}${num}`)).reverse()
-
-    this.controls = [
+    this.UIManager = new UIManager(this, this.canvas, [
       {
         type: 'button',
         label: 'Undo',
-        callback: () => this.undoLastAction()
+        callback: () => this.objectManager.undoLastObject()
       },
       {
         type: 'input',
@@ -94,26 +86,20 @@ class Game {
           this.synth = new Tone.PolySynth(Tone[this.currentSynth]).toDestination()
         }
       },
-    ]
+    ])
   }
  
   update() {
-    for (const spawner of this.spawners) {
-      spawner.update(this.deltaTime)
-    }
+    this.objectManager.update(this.deltaTime)
     for (const ball of this.balls) {
-      ball.update(this.deltaTime, this.lines, this.gravityMultiplier, this.friction, this.drag)
+      const lines = this.objectManager.getObjectsOfClass(Line)
+      ball.update(this.deltaTime, lines, this.gravityMultiplier, this.friction, this.drag)
     }
     this.balls = this.balls.filter(ball => !ball.deleteMe)
     
-    if (this.isTouching) {
-      this.timeHeld += this.deltaTime
-      if (this.timeHeld >= this.clickThreshold) {
-        this.isHolding = true
-      }
-    }
-
-    if (this.lineStart && this.isHolding) {
+    this.controlManager.update(this.deltaTime)
+    
+    if (this.lineStart && this.controlManager.isHolding) {
       this.lineStart = undefined
     }
   }
@@ -133,16 +119,10 @@ class Game {
     context.fillStyle = gradiant
     context.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
-    for (const spawner of this.spawners) {
-      spawner.draw(context)
-    }
+    this.objectManager.draw(context)
 
     for (const ball of this.balls) {
       ball.draw(context)
-    }
-
-    for (const line of this.lines) {
-      line.draw(context)
     }
 
     if (this.lineStart) {
@@ -155,14 +135,14 @@ class Game {
 
       context.beginPath();
       context.moveTo(this.lineStart.x, this.lineStart.y);
-      context.lineTo(this.mousePosition.x, this.mousePosition.y);
+      context.lineTo(this.controlManager.mousePosition.x, this.controlManager.mousePosition.y);
       context.strokeStyle = 'green';
       context.stroke();
     }
 
-    if (this.isHolding) {
+    if (this.controlManager.isHolding) {
       context.beginPath();
-      context.arc(this.mousePosition.x, this.mousePosition.y, 25, 255, Math.PI * 2, true);
+      context.arc(this.controlManager.mousePosition.x, this.controlManager.mousePosition.y, 25, 255, Math.PI * 2, true);
       context.closePath();
       context.fillStyle = 'green';
       context.fill();
@@ -183,179 +163,52 @@ class Game {
     console.log('init')
     this.canvas.width = window.innerWidth
     this.canvas.height = window.innerHeight
-    this.setupUIInputs()
+    this.UIManager.init()
+    this.controlManager.init()
+    this.objectManager.init()
     this.setupEventListeners();
 
     this.lastDraw = performance.now()
     window.requestAnimationFrame((hrt) => this.mainLoop(hrt))
   }
 
-  setupUIInputs() {
-    const controlSection = document.getElementById('control-section')
-    for (const control of this.controls) {
-      const wrapper = document.createElement('div')
-      const inputOutputWrapper = document.createElement('div')
-      const labelElement = document.createElement('label')
-      labelElement.innerHTML = control.label
-      let element
-      let outputElement
-      if (control.type === 'input') {
-        element = document.createElement('input')
-        outputElement = document.createElement('span')
-        outputElement.innerHTML = this[control.variable]
-  
-        for (const attribute in control.attributes) {
-          element.setAttribute(attribute, control.attributes[attribute])
-        }
-  
-        element.setAttribute('value', this[control.variable])
-        element.addEventListener('input', (e) => {
-          this[control.variable] = e.target.value
-          outputElement.innerHTML = this[control.variable]
-        })
-      } else if (control.type === 'button') {
-        element = document.createElement('button')
-        element.innerHTML = control.label
-        element.addEventListener('click', control.callback)
-      } else if (control.type === 'select') {
-        element = document.createElement('select')
-        for (const option of control.options) {
-          const optionElement = document.createElement('option')
-          optionElement.setAttribute('value', option.value)
-          optionElement.innerHTML = option.name
-          optionElement.classList = `option-${option.value}`
-          if (this[control.variable] === option.value) {
-            optionElement.setAttribute('selected', true)
-          }
-          element.appendChild(optionElement)
-        }
-        element.addEventListener('change', (e) => {
-          this[control.variable] = e.target.value
-          if (control.callback) {
-            control.callback()
-          }
-        })
-        inputOutputWrapper.classList = ('select-wrapper')
-      }
-     
-
-      inputOutputWrapper.appendChild(element)
-      if (outputElement) {
-        inputOutputWrapper.appendChild(outputElement)
-      }
-      wrapper.appendChild(labelElement)
-      wrapper.appendChild(inputOutputWrapper)
-      controlSection.appendChild(wrapper)
-    }
-  }
-
-  addObjectAction(obj) {
-    obj.actionId = this.objectIdCounter
-    this.objectIdCounter++
-    this.actions.push(obj)
-  }
-
-  undoLastAction() {
-    if (this.actions.length) {
-      const lastAction = this.actions.pop()
-      if (lastAction instanceof Line) {
-        this.lines = this.lines.filter(object => object.actionId !== lastAction.actionId)
-      } else if (lastAction instanceof BallSpawner) {
-        this.spawners = this.spawners.filter(object => object.actionId !== lastAction.actionId)
-      }
-    }
-  }
-
-  setMousePosition(event) {
-    if (event.changedTouches) {
-      event = event.changedTouches[0]
-    }
-    const parent = this.canvas.offsetParent
-    this.mousePosition = new Vec2({ x: event.pageX - (this.canvas.offsetLeft + parent.offsetLeft), y: event.pageY - (this.canvas.offsetTop + parent.offsetTop) })
-  }
-
   handleClick() {
-    const position = new Vec2(this.mousePosition)
-    console.log('handle click')
-    
-    if (this.lineStart) {
-      const line = new Line(this.lineStart, position)
+    if (!this.isSoundInitiated) {
+      Tone.start()
+      this.isSoundInitiated = true
+    }
 
-      this.lines.push(line)
+    const position = this.controlManager.getRelativeMousePosition()    
+    if (this.lineStart) {
+      this.lineStart = new Vec2( { x: this.lineStart.x / this.canvas.width, y: this.lineStart.y / this.canvas.height } )
+      this.objectManager.addObject(Line, this.lineStart, position)
       this.lineStart = undefined
-      this.addObjectAction(line)
     } else {
-      this.lineStart = position
+      this.lineStart = this.controlManager.mousePosition
     }
   }
 
   handleHeld() {
-    const position = new Vec2(this.mousePosition)
+    const position = this.controlManager.getRelativeMousePosition()
+    const spawners = this.objectManager.getObjectsOfClass(BallSpawner)
 
-    const timer = this.spawners.length ? this.spawners[0].timer : 0
-    const spawner = new BallSpawner(new Vec2(position), 2, this.currentSynth, timer)
-
-    this.addObjectAction(spawner)
-    this.spawners.push(spawner)
+    const timer = spawners.length ? spawners[0].timer : 0
+    this.objectManager.addObject(BallSpawner, new Vec2(position), 2, this.currentSynth, timer)
   }
 
   setupEventListeners() {
+    this.canvas.addEventListener('control-manager-click', (e) => this.handleClick(e))
+    this.canvas.addEventListener('control-manager-held', (e) => this.handleHeld(e))
+
     window.addEventListener('resize', () => {
       this.canvas.width = window.innerWidth
       this.canvas.height = window.innerHeight
     });
 
-    const controlButton = document.getElementById('control-toggle')
-    const controlSection = document.getElementById('control-section')
-
-    document.getElementById('control-toggle').addEventListener('click', (e) => {
-      this.showControls = !this.showControls
-      if (this.showControls) {
-        controlSection.style.display = 'block'
-        // controlButton.style.display = 'none'
-      } else {
-        controlSection.style.display = 'none'
-        // controlButton.style.display = 'block'
-      }
-    })
-
-    const handleTouch = (e) => {
-      e.preventDefault();
-      this.setMousePosition(e)
-      if (this.lineStart === undefined && this.lines.length === 0) {
-        Tone.start()
-      }
-      this.isTouching = true  
-    }
-    const handleTouchRelease = (e) => {
-      e.preventDefault();
-      this.setMousePosition(e)
-
-      if (this.timeHeld <= this.clickThreshold) {
-        this.handleClick(e)
-      } else {
-        this.handleHeld(e)
-      }
-      this.isTouching = false
-      this.isHolding = false
-      this.timeHeld = 0
-    }
-    const handleTouchMovement = (e) => {
-      e.preventDefault();
-      this.setMousePosition(e)
-    }
-
-    this.canvas.addEventListener('mousedown', (e) => handleTouch(e));
-    this.canvas.addEventListener('touchstart', (e) => handleTouch(e));
-
-    this.canvas.addEventListener('mouseup', (e) => handleTouchRelease(e))
-    this.canvas.addEventListener('touchend', (e) => handleTouchRelease(e))
-
-    this.canvas.addEventListener('mousemove', (e) => handleTouchMovement(e))
-    this.canvas.addEventListener('touchmove', (e) => handleTouchMovement(e))
-
     this.canvas.addEventListener('spawn-ball', (e) => {
-      if (this.balls.length < this.spawners.length * this.maxBalls) {
+      const spawners = this.objectManager.getObjectsOfClass(BallSpawner)
+
+      if (this.balls.length < spawners.length * this.maxBalls) {
         const ball = new Ball(e.detail.position.x, e.detail.position.y, e.detail.spawner)
         this.balls.push(ball)
       }

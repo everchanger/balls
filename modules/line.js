@@ -2,6 +2,7 @@ import { Vec2 } from "./vec2.js";
 
 export class Line {
   constructor(start, end) {
+    this.canvas = document.getElementById('canvas');
     this.start = new Vec2(start)
     this.end = new Vec2(end)
 
@@ -76,5 +77,10 @@ export class Line {
     context.stroke();
 
     context.lineWidth = currentWidth
+  }
+
+  handleRelativePosition() {
+    this.start = new Vec2({ x: this.start.x * this.canvas.width, y: this.start.y * this.canvas.height})
+    this.end = new Vec2({ x: this.end.x * this.canvas.width, y: this.end.y * this.canvas.height})
   }
 }
