@@ -14,6 +14,7 @@ export class ObjectManager {
         objectClass = Line
       } else if (objectClass === BallSpawner.prototype.constructor.name) {
         objectClass = BallSpawner
+        data[3] = 0
       }
     }
 
@@ -55,6 +56,12 @@ export class ObjectManager {
 
     this.storeHistory()
   }
+  
+  removeAllObjects() {
+    this.objects = []
+    this.history = []
+    this.storeHistory()
+  }
 
   getObjectsOfClass(objectClass) {
     return this.objects.filter(obj => obj instanceof objectClass)
@@ -74,7 +81,7 @@ export class ObjectManager {
 
   init() {
     const split = window.location.href.split('?h=')
-    if (split.length > 1) {
+    if (split.length > 1 && split[1].length) {
       this.replayHistory(split[1])
     }
   }

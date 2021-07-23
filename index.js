@@ -2,10 +2,11 @@ import { Ball, Line, Vec2, BallSpawner, ControlManager, UIManager, ObjectManager
 
 class Game {
   constructor() {
+    this.debug = false
     this.canvas = document.getElementById('canvas');
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     this.isSoundInitiated = false
-    this.synth = new Tone.PolySynth(this.currentSynth).toDestination()
+    this.currentSynth = 'AMSynth'
     this.objectManager = new ObjectManager(this.canvas)
     this.controlManager = new ControlManager(this.canvas)
     this.balls = []
@@ -23,11 +24,17 @@ class Game {
     this.UIManager = new UIManager(this, this.canvas, [
       {
         type: 'button',
-        label: 'Undo',
+        label: '🗑️',
+        callback: () => this.objectManager.removeAllObjects()
+      },
+      {
+        type: 'button',
+        label: '↩️',
         callback: () => this.objectManager.undoLastObject()
       },
       {
         type: 'input',
+        debug: true,
         attributes: {
           type: 'range',
           min: '0',
@@ -38,6 +45,7 @@ class Game {
       },
       {
         type: 'input',
+        debug: true,
         attributes: {
           type: 'range',
           min: '1',
@@ -48,6 +56,7 @@ class Game {
       },
       {
         type: 'input',
+        debug: true,
         attributes: {
           type: 'range',
           min: '-10',
@@ -61,29 +70,24 @@ class Game {
         options: [
           {
             value: 'AMSynth',
-            name: 'AM Synth'
+            name: '🎻'
           },
           {
             value: 'FMSynth',
-            name: 'FM Synth'
+            name: '🎺'
           },
           {
             value: 'Synth',
-            name: 'Synth'
+            name: '🎹'
           },
           {
             value: 'MembraneSynth',
-            name: 'Membrane Synth'
-          },
-          {
-            value: 'MetalSynth',
-            name: 'Metal Synth'
+            name: '🥁'
           },
         ],
         label: 'Synth',
         variable: 'currentSynth',
-        callback: () => { 
-          this.synth = new Tone.PolySynth(Tone[this.currentSynth]).toDestination()
+        callback: () => {
         }
       },
     ])
@@ -144,7 +148,7 @@ class Game {
       context.beginPath();
       context.arc(this.controlManager.mousePosition.x, this.controlManager.mousePosition.y, 25, 255, Math.PI * 2, true);
       context.closePath();
-      context.fillStyle = 'green';
+      context.fillStyle = BallSpawner.colorMap(this.currentSynth);
       context.fill();
     }
   }

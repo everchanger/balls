@@ -9,6 +9,66 @@ export class UIManager {
   setupUIInputs() {
     const controlSection = document.getElementById('control-section')
     for (const control of this.controls) {
+      if ((control.debug && !this.game.debug)) {
+        continue
+      }
+      const wrapper = document.createElement('div')
+      const inputOutputWrapper = document.createElement('div')
+      let element
+      let outputElement
+      if (control.type === 'input') {
+        element = document.createElement('input')
+        outputElement = document.createElement('span')
+        outputElement.innerHTML = this.game[control.variable]
+  
+        for (const attribute in control.attributes) {
+          element.setAttribute(attribute, control.attributes[attribute])
+        }
+  
+        element.setAttribute('value', this.game[control.variable])
+        element.addEventListener('input', (e) => {
+          this.game[control.variable] = e.target.value
+          outputElement.innerHTML = this.game[control.variable]
+        })
+      } else if (control.type === 'button') {
+        element = document.createElement('button')
+        element.innerHTML = control.label
+        element.addEventListener('click', control.callback)
+      } else if (control.type === 'select') {
+        element = document.createElement('select')
+        for (const option of control.options) {
+          const optionElement = document.createElement('option')
+          optionElement.setAttribute('value', option.value)
+          optionElement.innerHTML = option.name
+          optionElement.classList = `option-${option.value}`
+          if (this.game[control.variable] === option.value) {
+            optionElement.setAttribute('selected', true)
+          }
+          element.appendChild(optionElement)
+        }
+        element.addEventListener('change', (e) => {
+          this.game[control.variable] = e.target.value
+          if (control.callback) {
+            control.callback()
+          }
+        })
+        inputOutputWrapper.classList = ('select-wrapper')
+      }
+     
+
+      inputOutputWrapper.appendChild(element)
+      if (outputElement) {
+        inputOutputWrapper.appendChild(outputElement)
+      }
+      wrapper.appendChild(inputOutputWrapper)
+      controlSection.appendChild(wrapper)
+    }
+  }
+
+  setupDebugUIInputs() {
+    const controlSection = document.getElementById('control-section')
+    controlSection.classList = 'debug-control'
+    for (const control of this.controls) {
       const wrapper = document.createElement('div')
       const inputOutputWrapper = document.createElement('div')
       const labelElement = document.createElement('label')
@@ -88,7 +148,11 @@ export class UIManager {
   }
 
   init() {
-    this.setupUIInputs()
+    if (this.game.debug) {
+      this.setupDebugUIInputs()
+    } else {
+      this.setupUIInputs()
+    }
     this.registerEventListeners()
   }
 }

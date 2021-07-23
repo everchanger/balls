@@ -10,66 +10,81 @@
   position: absolute;
   top: 0;
   left: 0;
-  background-color: rgba(255, 255, 255, 0.3);
   padding: 1rem;
 }
 
 #control-section {
-  /* display: none; */
+  display: flex;
+  padding-bottom: 0;
+  padding-right: 0;
 }
 
 #control-toggle {
   display: none;
 }
 
-#control-section > div {
+#control-section.debug-control > div {
   display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
 }
 
-#control-section > div > div {
+#control-section.debug-control > div > div {
   display: flex;
   justify-content: flex-end;
   margin-left: 2rem;;
 }
 
-#control-section span {
+#control-section.debug-control span {
   width: 2rem;
   flex-shrink: 0;
 }
 
-#control-section .select-wrapper, #control-section select {
+#control-section.debug-control .select-wrapper, #control-section.debug-control select {
   width: 100%;
+}
+
+#control-section button {
+  text-align: left;
+  padding: 0;
+  background-color: transparent;
+  font-size: 2rem;
+  line-height: 1.2;
+  border: none;
+  margin-right: 0.5rem;
+}
+
+#control-section button:active {
+  box-shadow: 0 0 6px white;
+}
+
+.select-wrapper select {
+  font-size: 1.7rem;
+  line-height: 1.2;
 }
 
 .option-AMSynth {
   color: white;
-  background-color: green;
+  background-color: #FEC859;
 }
 
 .option-FMSynth {
   color: white;
-  background-color: red;
+  background-color: #FA448C;
 }
 
 .option-Synth {
   color: white;
-  background-color: blue;
+  background-color: #43B5A0;
 }
 
 .option-MembraneSynth {
-  color: black;
-  background-color: orange;
+  color: white;
+  background-color: #1B96F4;
 }
 
-.option-MetalSynth {
-  color: black;
-  background-color: aqua;
-}
-
-.container {
+/* .container {
   display: flex;
   justify-content: center;
   align-items: center;
-}
+} */

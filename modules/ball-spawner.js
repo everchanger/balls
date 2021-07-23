@@ -5,7 +5,7 @@ export class BallSpawner {
     this.canvas = document.getElementById('canvas');
     this.rate = rate
     this.position = new Vec2(position)
-    this.color = 'green'
+    this.color = BallSpawner.colorMap(synthType)
     this.timer = timer
     // this.synth = new Tone.Sampler({
     //   urls: {
@@ -21,16 +21,17 @@ export class BallSpawner {
     //   // baseUrl: "/samples/guitar/",
     // }).toDestination()
     this.synth = new Tone.PolySynth(Tone[synthType]).toDestination()
+  }
 
+  static colorMap(synthType) {
     if (synthType === 'FMSynth') {
-      this.color = 'red'
+      return '#FA448C'
     } else if (synthType === 'Synth') {
-      this.color = 'blue'
+      return '#43B5A0'
     } else if (synthType === 'MembraneSynth') {
-      this.color = 'orange'
-    } else if (synthType === 'MetalSynth') {
-      this.color = 'aqua'
-    }  
+      return '#1B96F4'
+    }
+    return '#FEC859'
   }
 
   update(deltaTime) {
